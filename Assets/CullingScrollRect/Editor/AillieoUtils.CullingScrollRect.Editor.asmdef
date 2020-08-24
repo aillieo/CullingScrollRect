@@ -1,0 +1,17 @@
+{
+    "name": "AillieoUtils.CullingScrollRect.Editor",
+    "references": [
+        "GUID:8d65af148d9232b498b197d07cff139b"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
