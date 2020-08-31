@@ -9,6 +9,9 @@ public class TestView : MonoBehaviour
 
     public CullingScrollRect scrollRect;
 
+    private List<ChildItemHandle> edgeHandles = new List<ChildItemHandle>();
+    private List<ChildItemHandle> iconHandles = new List<ChildItemHandle>();
+
     void Start()
     {
         InitScrollView();
@@ -26,7 +29,7 @@ public class TestView : MonoBehaviour
             Vector2 pos = 0.5f * (pos0 + pos1);
             float length = Vector2.Distance(pos0, pos1);
             float rot = Vector2.SignedAngle(pos1 - pos0, Vector2.right);
-            scrollRect.AddChild(
+            var handle = scrollRect.AddChild(
                 () => {
                     GameObject go = GameObject.Instantiate(itemTemplateLine.gameObject, this.scrollRect.content);
                     RectTransform r = go.GetComponent<RectTransform>();
@@ -43,13 +46,14 @@ public class TestView : MonoBehaviour
                 (pos0 + pos1) * 0.5f,
                 new Vector2(length, lineHeight),
                 rot);
+            edgeHandles.Add(handle);
         }
 
         RectTransform itemTemplateIcon = testData.itemTemplateIcon;
         Vector2 iconSize = itemTemplateIcon.rect.size;
         foreach (var iconPos in testData.nodes)
         {
-            scrollRect.AddChild(
+            var handle = scrollRect.AddChild(
                 () => {
                     GameObject go = GameObject.Instantiate(itemTemplateIcon.gameObject, this.scrollRect.content);
                     RectTransform r = go.GetComponent<RectTransform>();
@@ -60,12 +64,57 @@ public class TestView : MonoBehaviour
                 iconPos,
                 iconSize,
                 0);
+            iconHandles.Add(handle);
         }
 
-        this.scrollRect.normalizedPosition = new Vector2(0, 0.5f);
-        scrollRect.content.sizeDelta += new Vector2(100, 200);
+        scrollRect.SetDirty(true);
 
-        scrollRect.PerformCulling();
+        scrollRect.normalizedPosition = new Vector2(0, 0.5f);
+
     }
 
+    public void AddRandom()
+    {
+        RectTransform itemTemplateIcon = testData.itemTemplateIcon;
+        Vector2 iconSize = itemTemplateIcon.rect.size;
+        Vector2 iconPos = new Vector2(
+            Random.value * scrollRect.content.sizeDelta.x,
+            Random.value * scrollRect.content.sizeDelta.y
+            );
+        var handle = scrollRect.AddChild(
+                () => {
+                    GameObject go = GameObject.Instantiate(testData.itemTemplateIcon.gameObject, this.scrollRect.content);
+                    RectTransform r = go.GetComponent<RectTransform>();
+                    r.SetAsLastSibling();
+                    return r;
+                },
+                (rect) => { GameObject.Destroy(rect.gameObject); },
+                iconPos,
+                iconSize,
+                0);
+        iconHandles.Add(handle);
+    }
+
+    public void RemoveRandom()
+    {
+        if (iconHandles.Count == 0)
+        {
+            return;
+        }
+        int index = Random.Range(0, iconHandles.Count);
+        ChildItemHandle handle = iconHandles[index];
+        scrollRect.RemoveChild(handle);
+        iconHandles.Remove(handle);
+    }
+
+    public void FocusRandom()
+    {
+        if(iconHandles.Count == 0)
+        {
+            return;
+        }
+        int index = Random.Range(0, iconHandles.Count);
+        ChildItemHandle handle = iconHandles[index];
+        scrollRect.ScrollTo(handle);
+    }
 }

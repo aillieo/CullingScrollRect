@@ -1,3 +1,5 @@
+// #define DEBUG_MODE
+
 namespace AillieoUtils
 {
     using System.Collections;
@@ -93,6 +95,10 @@ namespace AillieoUtils
 
         public void SetVisible(bool visible)
         {
+#if DEBUG_MODE
+            bool backup = visible;
+            visible = true;
+#endif
             if (visible && Item == null)
             {
                 if (createFunc != null)
@@ -121,6 +127,10 @@ namespace AillieoUtils
                 }
                 Item = null;
             }
+
+#if DEBUG_MODE
+            Item.gameObject.SetActive(backup);
+#endif
         }
 
         public ChildItemHandle(CullingScrollRect owner, Func<RectTransform> createFunc, Action<RectTransform> recycleFunc, Vector2 position, Vector2 size, float rotationZ)
@@ -140,6 +150,26 @@ namespace AillieoUtils
             this.position = position;
             this.size = size;
             this.rotationZ = rotationZ;
+        }
+
+        public float Left()
+        {
+            return AABB.x;
+        }
+
+        public float Right()
+        {
+            return AABB.xMax;
+        }
+
+        public float Top()
+        {
+            return AABB.yMax;
+        }
+
+        public float Bottom()
+        {
+            return AABB.y;
         }
     }
 
