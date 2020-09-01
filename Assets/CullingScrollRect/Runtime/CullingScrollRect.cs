@@ -36,10 +36,12 @@ namespace AillieoUtils
         {
             public const int ListOrder          = 1 << 1;
             public const int CriticalIndex      = 1 << 2;
-            public const int ContentSizeExpand  = 1 << 3;
-            public const int ContentSizeShrink  = 1 << 4;
+            public const int ContentBorderLT    = 1 << 3;
+            public const int ContentBorderRB    = 1 << 4;
+            public const int ContentSizeExpand  = 1 << 5;
+            public const int ContentSizeShrink  = 1 << 6;
 
-            public const int All = ListOrder | CriticalIndex | ContentSizeExpand | ContentSizeShrink;
+            public const int All = ListOrder | CriticalIndex | ContentBorderLT | ContentBorderRB | ContentSizeExpand | ContentSizeShrink;
         }
 
         private struct CriticalItems
@@ -80,9 +82,42 @@ namespace AillieoUtils
         private readonly HashSet<ChildItemHandle> newHandles = new HashSet<ChildItemHandle>();
         private static readonly HashSet<ChildItemHandle> dirtyHandles = new HashSet<ChildItemHandle>();
 
-        public Vector4 borders { get => m_Borders; set => m_Borders = value; }
+        public Vector2 borderLeftTop
+        {
+            get => m_BordersLT;
+            set
+            {
+                if (m_BordersLT != value)
+                {
+                    lastBorderValue.x = m_BordersLT.x;
+                    lastBorderValue.y = m_BordersLT.y;
+                    m_BordersLT = value;
+                    InternalSetDirty(DirtyFlags.ContentBorderLT);
+                }
+            }
+        }
+
+        public Vector2 borderRightBottom
+        {
+            get => m_BordersRB;
+            set
+            {
+                if (m_BordersRB != value)
+                {
+                    lastBorderValue.z = m_BordersRB.x;
+                    lastBorderValue.w = m_BordersRB.y;
+                    m_BordersRB = value;
+                    InternalSetDirty(DirtyFlags.ContentBorderRB);
+                }
+            }
+        }
+
         [SerializeField]
-        private Vector4 m_Borders;
+        private Vector2 m_BordersLT;
+        [SerializeField]
+        private Vector2 m_BordersRB;
+
+        private Vector4 lastBorderValue;
 
         public ChildItemHandle AddChild(Func<RectTransform> createFunc, Action<RectTransform> recycleFunc, Vector2 position, Vector2 size, float rotationZ)
         {
@@ -179,6 +214,8 @@ namespace AillieoUtils
             m_curDelta = content.anchoredPosition - m_prevPosition;
             m_prevPosition = content.anchoredPosition;
 
+            lastBorderValue = new Vector4(borderLeftTop.x, borderLeftTop.y, borderRightBottom.x, borderRightBottom.y);
+
             PerformCulling(false);
             // todo: create internal pools for item template
         }
@@ -186,17 +223,14 @@ namespace AillieoUtils
         private void ExpandContentSize(IEnumerable<ChildItemHandle> newChildItems)
         {
             Rect contentRect = content.rect;
-            Vector2 newMin = Vector2.zero;
-            Vector2 newMax = contentRect.size;
+            Vector2 newMax = contentRect.size - borderRightBottom;
             foreach (ChildItemHandle item in newChildItems)
             {
                 Rect childRect = item.AABB;
-                newMin.x = Mathf.Min(newMin.x, childRect.xMin);
-                newMin.y = Mathf.Min(newMin.y, -childRect.yMax);
                 newMax.x = Mathf.Max(newMax.x, childRect.xMax);
                 newMax.y = Mathf.Max(newMax.y, -childRect.yMin);
             }
-            content.sizeDelta = newMax;
+            content.sizeDelta = borderLeftTop + newMax + borderRightBottom;
         }
 
         private void UpdateVisibility(IEnumerable<ChildItemHandle> childItems)
@@ -249,41 +283,57 @@ namespace AillieoUtils
             //sw.Start();
 
             // 依此判断各个flag
-            // 关于contentSize的更新
-            // 三种情况 1-1.有新增有删除 1-2.只有删除 1-3.只有新增
+
+            // 1. 更新border
+            if((dirtyFlag & DirtyFlags.ContentBorderRB) > 0)
+            {
+                Vector2 size = content.sizeDelta - new Vector2(lastBorderValue.z, lastBorderValue.w);
+                size += borderRightBottom;
+                content.sizeDelta = size;
+                dirtyFlag &= ~DirtyFlags.ContentBorderRB;
+            }
+
+            if((dirtyFlag & DirtyFlags.ContentBorderLT) > 0)
+            {
+                //Vector2 delta = new Vector2(borderLeftTop.x - lastBorderValue.x, borderLeftTop.y - lastBorderValue.y);
+                //foreach (ChildItemHandle handle in sortedForLeft)
+                //{
+                //    RectTransform item = handle.Item;
+                //    if (item != null)
+                //    {
+                //        item.anchoredPosition += delta;
+                //    }
+                //}
+                dirtyFlag &= ~DirtyFlags.ContentBorderLT;
+            }
+
+            // 2. 关于contentSize的更新
+            // 三种情况 2-1.有新增有删除 2-2.只有删除 2-3.只有新增
             if ((dirtyFlag & DirtyFlags.ContentSizeShrink) > 0)
             {
                 if ((dirtyFlag & DirtyFlags.ContentSizeExpand) > 0)
                 {
-                    // 1-1
-                    sortedForLeft.AddRange(newHandles);
-                    sortedForRight.AddRange(newHandles);
-                    sortedForTop.AddRange(newHandles);
-                    sortedForBottom.AddRange(newHandles);
+                    // 2-1
                     newHandles.Clear();
                     dirtyFlag &= ~DirtyFlags.ContentSizeExpand;
                     dirtyFlag |= DirtyFlags.ListOrder;
                     dirtyFlag |= DirtyFlags.CriticalIndex;
                 }
 
-                // 1-2
+                // 2-2
                 content.sizeDelta = Vector2.zero;
                 ExpandContentSize(sortedForLeft);
                 dirtyFlag &= ~DirtyFlags.ContentSizeShrink;
             }
             else if((dirtyFlag & DirtyFlags.ContentSizeExpand) > 0)
             {
-                // 1-3
-                sortedForLeft.AddRange(newHandles);
-                sortedForRight.AddRange(newHandles);
-                sortedForTop.AddRange(newHandles);
-                sortedForBottom.AddRange(newHandles);
+                // 2-3
                 ExpandContentSize(newHandles);
                 newHandles.Clear();
                 dirtyFlag &= ~DirtyFlags.ContentSizeExpand;
             }
 
-            // 2. 是否需要重新sort
+            // 3. 是否需要重新sort
             if((dirtyFlag & DirtyFlags.ListOrder) > 0)
             {
                 sortedForLeft.Sort(comparerForLeftBound);
@@ -294,7 +344,7 @@ namespace AillieoUtils
                 dirtyFlag &= DirtyFlags.CriticalIndex;
             }
 
-            // 3. 是否需要重新获取critical
+            // 4. 是否需要重新获取critical
             if((dirtyFlag & DirtyFlags.CriticalIndex) > 0)
             {
                 FindAllCriticalItems();
@@ -474,6 +524,18 @@ namespace AillieoUtils
 
         private static void FindCritical(List<ChildItemHandle> list, float critical, Func<ChildItemHandle,float> compareValue, ref int lastLess, ref int firstGreater)
         {
+            if(list.Count == 0)
+            {
+                return;
+            }
+
+            if(list.Count == 1)
+            {
+                lastLess = 0;
+                firstGreater = 0;
+                return;
+            }
+
             // 找到最后一个小于的 和第一个大于的
             for (int i = 0, len = list.Count; i + 1 < len; ++ i)
             {
@@ -586,9 +648,6 @@ namespace AillieoUtils
             {
                 Rect r = h.AABB;
 
-                Vector2 offset = this.content.position;
-                r.position = r.position + offset;
-
                 Gizmos.color = Color.blue;
 
                 if(!criticalItems.AnyInvalid())
@@ -615,10 +674,10 @@ namespace AillieoUtils
                     }
                 }
 
-                Vector2 p00 = r.min;
-                Vector2 p11 = r.max;
-                Vector2 p01 = new Vector2(r.x, r.y + r.height);
-                Vector2 p10 = new Vector2(r.x + r.width, r.y);
+                Vector2 p00 = content.TransformPoint(r.min);
+                Vector2 p11 = content.TransformPoint(r.max);
+                Vector2 p01 = content.TransformPoint(new Vector2(r.x, r.y + r.height));
+                Vector2 p10 = content.TransformPoint(new Vector2(r.x + r.width, r.y));
 
                 Gizmos.DrawLine(p00, p01);
                 Gizmos.DrawLine(p01, p11);
