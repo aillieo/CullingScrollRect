@@ -20,8 +20,6 @@ namespace AillieoUtils
         public override void OnInspectorGUI()
         {
             EditorGUILayout.LabelField("Borders");
-            Vector2 bordersLT = cullingScrollRect.borderLeftTop;
-            Vector2 bordersRB = cullingScrollRect.borderRightBottom;
 
             EditorGUI.indentLevel ++;
             EditorGUI.BeginChangeCheck();
@@ -34,12 +32,11 @@ namespace AillieoUtils
 
             if(changed)
             {
-                serializedObject.ApplyModifiedProperties();
                 cullingScrollRect.borderLeftTop = m_BordersLT.vector2Value;
                 cullingScrollRect.borderRightBottom = m_BordersRB.vector2Value;
+                EditorUtility.SetDirty(cullingScrollRect);
+                serializedObject.ApplyModifiedProperties();
             }
-
-            // serializedObject.Update();
 
             base.OnInspectorGUI();
         }

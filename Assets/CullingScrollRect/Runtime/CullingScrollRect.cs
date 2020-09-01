@@ -214,9 +214,9 @@ namespace AillieoUtils
             m_curDelta = content.anchoredPosition - m_prevPosition;
             m_prevPosition = content.anchoredPosition;
 
-            lastBorderValue = Vector4.zero;
+            lastBorderValue = new Vector4(borderLeftTop.x, borderLeftTop.y, borderRightBottom.x, borderRightBottom.y);
 
-            PerformCulling(false);
+            SetDirty(false);
             // todo: create internal pools for item template
         }
 
@@ -230,7 +230,7 @@ namespace AillieoUtils
                 newMax.x = Mathf.Max(newMax.x, childRect.xMax);
                 newMax.y = Mathf.Max(newMax.y, -childRect.yMin);
             }
-            content.sizeDelta = borderLeftTop + newMax + borderRightBottom;
+            content.sizeDelta = newMax + borderRightBottom;
         }
 
         private void UpdateVisibility(IEnumerable<ChildItemHandle> childItems)

@@ -437,7 +437,8 @@ MonoBehaviour:
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Borders: {x: 0, y: 0, z: 0, w: 0}
+  m_BordersLT: {x: 200, y: 200}
+  m_BordersRB: {x: 200, y: 200}
 --- !u!1 &4955696413995064794
 GameObject:
   m_ObjectHideFlags: 0
