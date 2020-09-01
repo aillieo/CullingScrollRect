@@ -187,7 +187,7 @@ namespace AillieoUtils
                 return;
             }
 
-            Vector2 position = handle.Position;
+            Vector2 position = handle.Position + borderLeftTop;
             Vector2 contentSize = content.sizeDelta;
             this.normalizedPosition = new Vector2(
                 position.x / contentSize.x,
@@ -214,7 +214,7 @@ namespace AillieoUtils
             m_curDelta = content.anchoredPosition - m_prevPosition;
             m_prevPosition = content.anchoredPosition;
 
-            lastBorderValue = new Vector4(borderLeftTop.x, borderLeftTop.y, borderRightBottom.x, borderRightBottom.y);
+            lastBorderValue = Vector4.zero;
 
             PerformCulling(false);
             // todo: create internal pools for item template
@@ -295,15 +295,19 @@ namespace AillieoUtils
 
             if((dirtyFlag & DirtyFlags.ContentBorderLT) > 0)
             {
-                //Vector2 delta = new Vector2(borderLeftTop.x - lastBorderValue.x, borderLeftTop.y - lastBorderValue.y);
-                //foreach (ChildItemHandle handle in sortedForLeft)
-                //{
-                //    RectTransform item = handle.Item;
-                //    if (item != null)
-                //    {
-                //        item.anchoredPosition += delta;
-                //    }
-                //}
+                Vector2 size = content.sizeDelta - new Vector2(lastBorderValue.x, lastBorderValue.y);
+                size += borderLeftTop;
+                content.sizeDelta = size;
+                Vector2 delta = new Vector2(borderLeftTop.x - lastBorderValue.x, lastBorderValue.y - borderLeftTop.y);
+                foreach (ChildItemHandle handle in sortedForLeft)
+                {
+                    handle.SetAABBDrity();
+                    RectTransform item = handle.Item;
+                    if (item != null)
+                    {
+                        item.anchoredPosition += delta;
+                    }
+                }
                 dirtyFlag &= ~DirtyFlags.ContentBorderLT;
             }
 
@@ -650,7 +654,7 @@ namespace AillieoUtils
 
                 Gizmos.color = Color.blue;
 
-                if(!criticalItems.AnyInvalid())
+                if (!criticalItems.AnyInvalid())
                 {
                     bool criticalToShow =
                         h == sortedForLeft[criticalItems.leftToShow] ||

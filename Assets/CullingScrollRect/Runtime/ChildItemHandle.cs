@@ -20,7 +20,7 @@ namespace AillieoUtils
                 if (position != value)
                 {
                     position = value;
-                    aabb = null;
+                    SetAABBDrity();
                 }
             }
         }
@@ -33,7 +33,7 @@ namespace AillieoUtils
                 if (size != value)
                 {
                     size = value;
-                    aabb = null;
+                    SetAABBDrity();
                 }
             }
         }
@@ -46,7 +46,7 @@ namespace AillieoUtils
                 if (rotationZ != value)
                 {
                     rotationZ = value;
-                    aabb = null;
+                    SetAABBDrity();
                 }
             }
         }
@@ -67,7 +67,7 @@ namespace AillieoUtils
                 if (aabb == null)
                 {
 
-                    Vector2 p = position;
+                    Vector2 p = position + owner.borderLeftTop;
                     p.y = -p.y;
                     Vector2 s = size;
 
@@ -110,7 +110,7 @@ namespace AillieoUtils
                     Item = GameObject.Instantiate(template.gameObject).GetComponent<RectTransform>();
                 }
                 Item.SetParent(owner.content.transform, false);
-                Vector2 pos = Position;
+                Vector2 pos = Position + owner.borderLeftTop;
                 pos.y = -pos.y;
                 pos = pos + (Item.pivot - 0.5f * Vector2.one) * Size;
                 Item.anchoredPosition = pos;
@@ -131,6 +131,11 @@ namespace AillieoUtils
 #if DEBUG_MODE
             Item.gameObject.SetActive(backup);
 #endif
+        }
+
+        public void SetAABBDrity()
+        {
+            this.aabb = null;
         }
 
         public ChildItemHandle(CullingScrollRect owner, Func<RectTransform> createFunc, Action<RectTransform> recycleFunc, Vector2 position, Vector2 size, float rotationZ)

@@ -12,6 +12,9 @@ public class TestView : MonoBehaviour
     private List<ChildItemHandle> edgeHandles = new List<ChildItemHandle>();
     private List<ChildItemHandle> iconHandles = new List<ChildItemHandle>();
 
+    private SimpleGameObjectPool poolEdge;
+    private SimpleGameObjectPool poolIcon;
+
     void Start()
     {
         InitScrollView();
@@ -20,6 +23,7 @@ public class TestView : MonoBehaviour
     private void InitScrollView()
     {
         RectTransform itemTemplateLine = testData.itemTemplateLine;
+        poolEdge = new SimpleGameObjectPool(itemTemplateLine.gameObject, 100);
         float lineHeight = itemTemplateLine.rect.height;
         foreach (var edge in testData.edges)
         {
@@ -31,7 +35,8 @@ public class TestView : MonoBehaviour
             float rot = Vector2.SignedAngle(pos1 - pos0, Vector2.right);
             var handle = scrollRect.AddChild(
                 () => {
-                    GameObject go = GameObject.Instantiate(itemTemplateLine.gameObject, this.scrollRect.content);
+                    GameObject go = poolEdge.Get();
+                    go.transform.SetParent(this.scrollRect.content, false);
                     RectTransform r = go.GetComponent<RectTransform>();
                     Vector2 size = r.rect.size;
                     size.x = length;
@@ -42,7 +47,7 @@ public class TestView : MonoBehaviour
                     r.SetAsFirstSibling();
                     return r;
                 },
-                (rect) => { GameObject.Destroy(rect.gameObject); },
+                (rect) => { poolEdge.Recycle(rect.gameObject); },
                 (pos0 + pos1) * 0.5f,
                 new Vector2(length, lineHeight),
                 rot);
@@ -50,17 +55,19 @@ public class TestView : MonoBehaviour
         }
 
         RectTransform itemTemplateIcon = testData.itemTemplateIcon;
+        poolIcon = new SimpleGameObjectPool(itemTemplateIcon.gameObject, 100);
         Vector2 iconSize = itemTemplateIcon.rect.size;
         foreach (var iconPos in testData.nodes)
         {
             var handle = scrollRect.AddChild(
                 () => {
-                    GameObject go = GameObject.Instantiate(itemTemplateIcon.gameObject, this.scrollRect.content);
+                    GameObject go = poolIcon.Get();
+                    go.transform.SetParent(this.scrollRect.content, false);
                     RectTransform r = go.GetComponent<RectTransform>();
                     r.SetAsLastSibling();
                     return r;
                 },
-                (rect) => { GameObject.Destroy(rect.gameObject); },
+                (rect) => { poolIcon.Recycle(rect.gameObject); },
                 iconPos,
                 iconSize,
                 0);
@@ -83,12 +90,13 @@ public class TestView : MonoBehaviour
             );
         var handle = scrollRect.AddChild(
                 () => {
-                    GameObject go = GameObject.Instantiate(testData.itemTemplateIcon.gameObject, this.scrollRect.content);
+                    GameObject go = poolIcon.Get();
+                    go.transform.SetParent(this.scrollRect.content, false);
                     RectTransform r = go.GetComponent<RectTransform>();
                     r.SetAsLastSibling();
                     return r;
                 },
-                (rect) => { GameObject.Destroy(rect.gameObject); },
+                (rect) => { poolIcon.Recycle(rect.gameObject); },
                 iconPos,
                 iconSize,
                 0);

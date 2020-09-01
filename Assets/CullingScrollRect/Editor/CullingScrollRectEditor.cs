@@ -19,30 +19,27 @@ namespace AillieoUtils
 
         public override void OnInspectorGUI()
         {
-            serializedObject.Update();
-
             EditorGUILayout.LabelField("Borders");
             Vector2 bordersLT = cullingScrollRect.borderLeftTop;
             Vector2 bordersRB = cullingScrollRect.borderRightBottom;
 
             EditorGUI.indentLevel ++;
-            //bordersLT.x = EditorGUILayout.FloatField(new GUIContent("Left"), bordersLT.x);
-            bordersRB.x = EditorGUILayout.FloatField(new GUIContent("Right"), bordersRB.x);
-            //bordersLT.y = EditorGUILayout.FloatField(new GUIContent("Top"), bordersLT.y);
-            bordersRB.y = EditorGUILayout.FloatField(new GUIContent("Bottom"), bordersRB.y);
+            EditorGUI.BeginChangeCheck();
+            EditorGUILayout.PropertyField(m_BordersLT.FindPropertyRelative("x"), new GUIContent("Left"));
+            EditorGUILayout.PropertyField(m_BordersRB.FindPropertyRelative("x"), new GUIContent("Right"));
+            EditorGUILayout.PropertyField(m_BordersLT.FindPropertyRelative("y"), new GUIContent("Top"));
+            EditorGUILayout.PropertyField(m_BordersRB.FindPropertyRelative("y"), new GUIContent("Bottom"));
+            bool changed = EditorGUI.EndChangeCheck();
             EditorGUI.indentLevel--;
 
-            if (bordersLT != cullingScrollRect.borderLeftTop)
+            if(changed)
             {
-                cullingScrollRect.borderLeftTop = bordersLT;
-                m_BordersLT.vector2Value = bordersLT;
+                serializedObject.ApplyModifiedProperties();
+                cullingScrollRect.borderLeftTop = m_BordersLT.vector2Value;
+                cullingScrollRect.borderRightBottom = m_BordersRB.vector2Value;
             }
-            if (bordersRB != cullingScrollRect.borderRightBottom)
-            {
-                cullingScrollRect.borderRightBottom = bordersRB;
-                m_BordersRB.vector2Value = bordersRB;
-            }
-            serializedObject.ApplyModifiedProperties();
+
+            // serializedObject.Update();
 
             base.OnInspectorGUI();
         }
